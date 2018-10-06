@@ -1,0 +1,185 @@
+\documentclass[a4paper,12pt]{article} %style de document
+\usepackage[utf8]{inputenc} %encodage des caractères
+\usepackage[french]{babel} %paquet de langue français
+\usepackage[T1]{fontenc} %encodage de la police
+\usepackage[top=2cm,bottom=2cm,left=2cm,right=2cm]{geometry} %marges
+\usepackage{graphicx} %affichage des images
+
+
+\begin{document} %début du document
+
+
+
+%----------------------------------
+%page de garde
+%----------------------------------
+
+\begin{titlepage}
+
+\includegraphics[scale=0.3]{images/unicaen.png}
+
+\vspace{7cm}
+
+\begin{center}
+
+\begin{Huge}
+Complément POO\\
+Rapport du Devoir\\
+\end{Huge}
+\vspace{2cm}
+\begin{large}
+Beauchamp Aymeric 21301016\\
+Chagneux Dimitri 21606807\\
+Mori Baptiste 21602052\\
+Leblond Valentin 21609038\\
+\vspace{1cm}
+L2-Info-groupe-4A
+\end{large}
+
+\end{center}
+\end{titlepage}
+
+
+%------------------------------
+%sommaire
+%------------------------------
+
+\newpage
+
+\tableofcontents{}
+
+\newpage
+
+%------------------------------
+%contenu
+%------------------------------
+
+
+\section*{Introduction}
+\addcontentsline{toc}{section}{Introduction}
+
+L'objectif de ce projet de POO est de réaliser un taquin : un casse-tête consistant à déplacer des cases d'un plateau afin de les replacer dans l'ordre et ainsi reconstituer une image ou un motif donné.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.5]{images/Capture.PNG}
+\caption{Jeu du Taquin}
+\end{figure}
+
+Nous avons séparé le projet en deux packages, le premier comportant le modèle du jeu utilisable en version console (le package \textbf{model}), et le deuxième, l'implémentation de l'interface graphique (le package \textbf{GUI}). Nous utilisons également un troisième dossier \textbf{ressources} où sont stockées les images utilisées par l'application.
+
+\section{La conception du package model}
+
+Le modèle de base du taquin est constitué d'une grille d'objets représentant les différentes cases. Les cases pleines ont des identifiants pour permettre de mettre en place la condition de victoire : on gagne si chaque identifiant est placé aux bonnes coordonnées.
+
+\subsection{Organisation des classes}
+
+Tout d'abord, nous avons représenté les cases par deux classes, \textit{\textbf{FullTile}} pour les cases pleines et \textit{\textbf{EmptyTile}} pour la zone vide qu'on déplacera. Ces classes possèdent des attributs en commun qui sont les coordonnées X et Y dans la grille ; c'est pourquoi nous avons conçu une classe abstraite \textit{Tile} qui possède ces coordonnées et dont héritent FullTile et EmptyTile.\\
+La classe FullTile diffère de EmptyTile en ce qu'elle possède en plus un identifiant entier que l'on rend unique pour chaque instance utilisée.\\
+
+Ensuite, nous avons une classe Board qui décrit l'état du jeu et le fait évoluer.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.4]{images/model.png}
+\caption{Diagramme de classe du package model}
+\end{figure}
+
+\newpage
+
+\subsection{Fonctionnement du modèle}
+
+Comme nous l'avons expliqué, l'initialisation et la mise à jour du modèle se font par le biais de la classe Board.\\
+
+En premier lieu, nous avons une fonction \textbf{createGrid} qui permet d'initialiser une grille avec des FullTile et une EmptyTile et une fonction \textbf{toString} qui permet de l'afficher.\\
+La grille ainsi créée est dans un état résolu où les identifiants des cases sont rangés dans l'ordre ci-dessous :
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=1]{images/Capture2.PNG}
+\caption{Affiche d'une grille 3x3 initialisée}
+\end{figure}
+
+Puis, nous avons crée les déplacements de la case vide, nous avons d'abord commencer par créer une enum Direction avec quatre instances UP, DOWN, LEFT, RIGHT qui représentent une direction de déplacement. Nous utilisons cette enum dans la méthode \textbf{move} qui déplace la case vide dans la direction donnée en argument. Cette méthode vérifie également la validité du mouvement par rapport aux limites de la grille. \\
+
+Pour mélanger le jeu, on choisit un mouvement aléatoire selon les mouvements possibles de la case vide puis on déplace la case vide jusqu'en bas à droite, à sa position initiale. On garde en mémoire le dernier coup effectué afin d'éviter des coups inutiles qui réduisent l'efficacité du mélange ; si l'on va vers le haut lors d'un coup, on interdit d'aller vers le bas au coup suivant.\\
+Le mélange est effectué par la fonction \textbf{shuffle} qui prend en argument le nombre de coups à réaliser avant de considérer le mélange comme terminé. Dans la version finale, nous faisons 10 000 mélanges. Cela assure une bonne dispersion des cases pour un temps de calcul négligeable.\\
+Comme la grille initiale est résolue, l'état obtenu par le mélange n'est pas bloquant puisqu'il existe une séquence de coups menant de cet état à la solution et qu'il est impossible au joueur de bloquer le jeu en utilisant des déplacements valides.\\
+
+La récupération des coups jouables de la case vide est un voisinage de taille 4 de rayon 1 qui correspond aux quatre directions haut, bas, gauche, droite. La fonction \textbf{neighbours} donne selon une coordonnée dans la grille du jeu toutes les directions possibles.\\
+
+Le modèle dispose aussi d'une fonction \textbf{solve} qui résout le puzzle. Nous avons utilisé une approche extrêmement simple consistant à jouer un coup aléatoire jusqu'à obtenir la configuration initiale de la grille.\\
+Cette simplicité a un coût : le solveur peut réaliser jusqu'à 500 000 coups pour résoudre un simple puzzle 3x3, et devient très lent dès que l'on veut augmenter la taille.
+Nous sommes conscients qu'il est possible de réaliser un solveur plus efficace, par exemple via l'utilisation de l'algorithme A*, mais nous avons préféré ne pas nous focaliser sur cet aspect du projet.\\
+
+La classe principale permet de jouer au taquin en interface console. Le joueur peut déplacer la case vide avec Z,Q,S,D.
+
+\section{Conception du package GUI}
+
+L'interface graphique est composée de deux fenêtres, l'une permettant de choisir l'image du jeu et l'autre affichant le jeu en lui-même.
+
+\subsection{Organisation des classes}
+
+L'interface graphique est composée de la vue \textbf{View}, du modèle \textbf{Board, Tile} et du contrôleur présent dans \textbf{Interface} (clics de souris et touches du clavier). La vue implémente \textbf{ModelListener}, ce qui permet de l'actualiser lorsque le modèle est modifié. Le modèle (ici le \textbf{Board}) hérite de \textbf{AbstractModeleEcoutable} qui permet d'ajouter ou supprimer des écouteurs mais aussi d'actualiser tous les écouteurs lors de l'exécution de la fonction \textbf{move}. Les contrôleurs lancent le mouvement du modèle qui va lui actualiser la vue.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.25]{images/mvc.png}
+\caption{Diagramme de classe MVC}
+\end{figure}
+ 
+
+\subsection{Fonctionnement GUI}
+
+D'abord, pour représenter l'état du jeu, la classe \textbf{View} va, à partir d'un chemin, d'une image et d'un Board, découper l'image et lier pour chaque identifiant une partie de l'image qui lui correspond. La case vide ne possède pas d'identifiant, néanmoins elle a également une image qui est associée de façon à ce que l'image complète soit affichée lorsque le puzzle est résolu. On enlève aussi le quadrillage pour avoir une image plus esthétique.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.4]{images/Capture3.PNG}
+\hspace{0.2cm}
+\includegraphics[scale=0.4]{images/Capture4.PNG}
+\caption{Visuel de la résolution du taquin}
+\end{figure}
+
+Pour choisir l'image qui est en fond, nous avons fait une autre interface qui va lister tous les éléments qui sont dans le dossier \textbf{ressources} (ne contenant que des images) en utilisant JList, Vector et JScrollPane pour gérer une plus grande quantité d'images. On ajoute dans le Vector les noms de fichier sans extension et on crée la JList avec le Vector en argument.\\
+Ensuite, on crée le JScrollPane et on ajoute la JList. Pour intégrer le tout, on ajoute le JScrollPane de la même manière qu'un JPanel avec un \textbf{add} dans la frame. Quand on sélectionne une image dans la liste, elle s'affiche en grand à côté. Enfin, une fois l'image voulue sélectionnée, il suffit d'appuyer sur le bouton \textbf{Jouer} pour lancer l'interface du jeu avec l'image choisie en fond. On peut utiliser n'importe quelle image, cependant il est évident que plus l'image est petite par rapport à la vue, plus elle sera pixelisée en jeu.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.8]{images/Capture5.PNG}
+\caption{Images dans le dossier \textbf{ressources}}
+\end{figure}
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.6]{images/Capture6.PNG}
+\newpage
+\vspace{0.1cm}
+\includegraphics[scale=0.6]{images/Capture7.PNG}
+\caption{Interface de sélection d'image}
+\end{figure}
+
+\newpage
+
+Les déplacements sont réalisables soit avec le clic de la souris sur une case pleine, soit avec les flèches directionnelles du clavier.\\
+Pour le déplacement à la souris, on récupère la position du clic, on le divise par la taille des cases et on prend la partie entière. Ceci nous donne les coordonnées du clic dans la grille de jeu. Il nous reste maintenant à tester si le clic est valide. Pour cela, on soustrait les coordonnées de la case cliquée avec celles de la case vide pour obtenir le vecteur de déplacement ; si ce vecteur correspond à une instance de l'enum Direction, on effectue le mouvement, sinon on ne fait rien.\\
+Pour le déplacement au clavier, c'est plus simple, on teste quelle touche est pressée et on lance la fonction \textbf{move} du Board avec la direction adéquate en argument.\\
+
+Deux boutons \textbf{recommencer} et \textbf{résolution} sont présents en bas de l'interface de jeu. Ils permettent respectivement de recommencer le jeu et de lancer le solveur. Pour recommencer le jeu, on a juste à mélanger le jeu. L'état obtenu est aussi soluble par propagation des propriétés énoncées en première partie.
+
+\section*{Conclusion}
+\addcontentsline{toc}{section}{Conclusion}
+
+L'objectif du projet a été atteint, nous avons programmé le jeu du taquin jouable en console et avec une interface graphique et en suivant le modèle MVC.\\
+
+Nous aurions pu améliorer ce projet en étoffant le solveur ou en proposant au joueur les dimensions de la grille de jeu - que nous avons mis par défaut en 3x3 - mais nous avons fait en sorte que le modèle et l'interface s'adaptent bien aux dimensions de la grille.
+
+\newpage
+
+\begin{figure}[!h]
+\centering
+\includegraphics[scale=0.6]{images/Capture8.PNG}
+\caption{Interface graphique avec une dimension 4x3}
+\end{figure}
+
+\end{document}
